@@ -1,0 +1,32 @@
+rules:
+  - key: DB_HOST
+    required: true
+    type: string
+    min_len: 1
+
+  - key: DB_PORT
+    required: true
+    type: int
+
+  - key: DB_PASSWORD
+    required: true
+    type: string
+    secret: true
+    min_len: 16
+    fingerprint: true
+
+  - key: APP_DEBUG
+    required: false
+    type: bool
+
+  - key: CACHE_TTL
+    required: false
+    type: duration
+
+  - key: APP_URL
+    required: false
+    type: url
+
+  - key: FEATURE_FLAGS
+    required: false
+    type: json

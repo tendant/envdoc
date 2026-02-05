@@ -1,0 +1,5 @@
+rules:
+  - key: FOO
+    type: string
+  - key: FOO
+    type: int
