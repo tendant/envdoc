@@ -7,8 +7,6 @@ COVERAGE    := coverage.out
 
 .DEFAULT_GOAL := help
 
-RULES       ?= testdata/basic_rules.yaml
-
 .PHONY: build run test test-cover lint vet clean docker-build deploy help
 
 ## build: compile the CLI binary
@@ -16,9 +14,13 @@ build:
 	@mkdir -p $(BIN_DIR)
 	go build -o $(BIN_DIR)/$(APP_NAME) ./cmd/envdoc
 
-## run: run locally (use RULES=path/to/rules.yaml to override)
+## run: run locally (use RULES=path/to/rules.yaml to add validation rules)
 run: build
+ifdef RULES
 	$(BIN_DIR)/$(APP_NAME) -rules $(RULES)
+else
+	$(BIN_DIR)/$(APP_NAME)
+endif
 
 ## test: run all tests
 test:

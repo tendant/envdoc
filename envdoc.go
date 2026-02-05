@@ -84,6 +84,11 @@ func New(opts ...Option) *Inspector {
 	if i.config == (Config{}) {
 		i.config = LoadConfig(i.env)
 	}
+	// No rules provided: default to dump-all metadata mode.
+	if len(i.rules) == 0 && !i.config.DumpAll {
+		i.config.DumpAll = true
+		i.config.Mode = ModeDumpAll
+	}
 	return i
 }
 

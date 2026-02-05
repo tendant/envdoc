@@ -117,6 +117,51 @@ func TestNew_DefaultConfig(t *testing.T) {
 	}
 }
 
+func TestNew_DefaultDumpAll_WhenNoRules(t *testing.T) {
+	inspector := New(WithEnvReader(MapEnvReader{"FOO": "bar"}))
+	cfg := inspector.Config()
+	if !cfg.DumpAll {
+		t.Error("expected DumpAll=true when no rules provided")
+	}
+	if cfg.Mode != ModeDumpAll {
+		t.Errorf("expected dumpall mode, got %s", cfg.Mode)
+	}
+
+	report := inspector.Inspect()
+	found := false
+	for _, r := range report.Results {
+		if r.Key == "FOO" {
+			found = true
+			if !r.Present {
+				t.Error("expected FOO present")
+			}
+			if r.Length != 3 {
+				t.Errorf("expected length 3, got %d", r.Length)
+			}
+		}
+	}
+	if !found {
+		t.Error("expected FOO in dump-all results")
+	}
+}
+
+func TestNew_AllowlistMode_WhenRulesProvided(t *testing.T) {
+	rules := []Rule{{Key: "DB_HOST", Required: true}}
+	inspector := New(
+		WithEnvReader(MapEnvReader{"DB_HOST": "localhost", "OTHER": "val"}),
+		WithRules(rules),
+	)
+	cfg := inspector.Config()
+	if cfg.DumpAll {
+		t.Error("expected DumpAll=false when rules provided")
+	}
+
+	report := inspector.Inspect()
+	if len(report.Results) != 1 {
+		t.Errorf("expected 1 result (allowlist), got %d", len(report.Results))
+	}
+}
+
 func TestDumpAllMode_WithFingerprints(t *testing.T) {
 	env := MapEnvReader{
 		"APP_NAME":   "myapp",
