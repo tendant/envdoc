@@ -4,6 +4,8 @@ BIN_DIR     := bin
 DOCKER_USER := wang
 IMAGE_NAME  := $(DOCKER_USER)/$(APP_NAME)
 IMAGE_TAG   := latest
+VERSION     := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+LDFLAGS     := -ldflags "-X main.version=$(VERSION)"
 COVERAGE    := coverage.out
 
 .DEFAULT_GOAL := help
@@ -13,7 +15,7 @@ COVERAGE    := coverage.out
 ## build: compile the CLI binary
 build:
 	@mkdir -p $(BIN_DIR)
-	go build -o $(BIN_DIR)/$(APP_NAME) ./cmd/envdoc
+	go build $(LDFLAGS) -o $(BIN_DIR)/$(APP_NAME) ./cmd/envdoc
 
 ## run: run locally (use RULES=path/to/rules.yaml to add validation rules)
 run: build
@@ -46,7 +48,7 @@ clean:
 
 ## docker-build: build Docker image
 docker-build:
-	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
+	docker build --build-arg VERSION=$(VERSION) -t $(IMAGE_NAME):$(IMAGE_TAG) .
 
 ## deploy: build and push Docker image
 deploy: docker-build

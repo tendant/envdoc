@@ -12,10 +12,18 @@ import (
 	"github.com/tendant/envdoc"
 )
 
+var version = "dev"
+
 func main() {
+	showVersion := flag.Bool("version", false, "print version and exit")
 	rulesPath := flag.String("rules", "", "path to YAML rules file")
 	listenAddr := flag.String("listen", "", "HTTP listen address (overrides ENVDOC_LISTEN_ADDR)")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println("envdoc " + version)
+		return
+	}
 
 	var opts []envdoc.Option
 
