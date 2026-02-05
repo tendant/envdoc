@@ -1,0 +1,86 @@
+---
+# envdoc init container deployment
+# Validates environment variables BEFORE your app starts.
+# If required vars are missing or invalid, the pod fails to start.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  labels:
+    app: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      initContainers:
+        # envdoc validates env vars before app starts
+        - name: envdoc
+          image: wang/envdoc:latest
+          args: ["-rules", "/etc/envdoc/rules.yaml"]
+          envFrom:
+            - configMapRef:
+                name: myapp-config
+            - secretRef:
+                name: myapp-secrets
+          env:
+            - name: ENVDOC_FAIL_FAST
+              value: "true"
+          volumeMounts:
+            - name: envdoc-rules
+              mountPath: /etc/envdoc
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+
+      containers:
+        - name: app
+          image: myapp:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: myapp-config
+            - secretRef:
+                name: myapp-secrets
+
+      volumes:
+        - name: envdoc-rules
+          configMap:
+            name: envdoc-rules
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envdoc-rules
+data:
+  rules.yaml: |
+    rules:
+      - key: DB_HOST
+        required: true
+        type: string
+        min_len: 1
+      - key: DB_PORT
+        required: true
+        type: int
+      - key: DB_PASSWORD
+        required: true
+        type: string
+        secret: true
+        min_len: 16

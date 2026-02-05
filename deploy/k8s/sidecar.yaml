@@ -1,0 +1,128 @@
+---
+# envdoc sidecar deployment
+# Runs envdoc alongside your app container, sharing the same env vars.
+# Access the debug endpoint via port-forward:
+#   kubectl port-forward deploy/myapp 9090:9090
+#   curl -H "Authorization: Bearer changeme" http://localhost:9090/debug/env
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  labels:
+    app: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        # Your application container
+        - name: app
+          image: myapp:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: myapp-config
+            - secretRef:
+                name: myapp-secrets
+
+        # envdoc sidecar — shares the same env vars
+        - name: envdoc
+          image: wang/envdoc:latest
+          args: ["-rules", "/etc/envdoc/rules.yaml"]
+          ports:
+            - containerPort: 9090
+              name: envdoc
+          envFrom:
+            - configMapRef:
+                name: myapp-config
+            - secretRef:
+                name: myapp-secrets
+          env:
+            - name: ENVDOC_ENABLE_HTTP
+              value: "true"
+            - name: ENVDOC_FAIL_FAST
+              value: "false"
+            - name: ENVDOC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: myapp-secrets
+                  key: ENVDOC_TOKEN
+                  optional: true
+            - name: ENVDOC_LISTEN_ADDR
+              value: "0.0.0.0:9090"
+          volumeMounts:
+            - name: envdoc-rules
+              mountPath: /etc/envdoc
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+
+      volumes:
+        - name: envdoc-rules
+          configMap:
+            name: envdoc-rules
+
+---
+# Validation rules as a ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envdoc-rules
+data:
+  rules.yaml: |
+    rules:
+      - key: DB_HOST
+        required: true
+        type: string
+        min_len: 1
+      - key: DB_PORT
+        required: true
+        type: int
+      - key: DB_PASSWORD
+        required: true
+        type: string
+        secret: true
+        min_len: 16
+        fingerprint: true
+      - key: APP_URL
+        required: false
+        type: url
+
+---
+# Sample ConfigMap (replace with your app's config)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: myapp-config
+data:
+  DB_HOST: "db.example.com"
+  DB_PORT: "5432"
+  APP_URL: "https://myapp.example.com"
+
+---
+# Sample Secret (replace with your app's secrets)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: myapp-secrets
+type: Opaque
+stringData:
+  DB_PASSWORD: "change-me-to-a-real-password"
+  ENVDOC_TOKEN: "changeme"
