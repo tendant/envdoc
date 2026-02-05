@@ -6,7 +6,7 @@ COPY . .
 ARG VERSION=dev
 RUN CGO_ENABLED=0 go build -ldflags "-X main.version=${VERSION}" -o /envdoc ./cmd/envdoc
 
-FROM alpine:3.21
-RUN apk add --no-cache ca-certificates
+FROM alpine:3.22
+RUN apk upgrade --no-cache && apk add --no-cache ca-certificates
 COPY --from=builder /envdoc /usr/local/bin/envdoc
 ENTRYPOINT ["envdoc"]
