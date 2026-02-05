@@ -1,7 +1,8 @@
 APP_NAME    := envdoc
 MODULE      := github.com/tendant/envdoc
 BIN_DIR     := bin
-IMAGE_NAME  := $(APP_NAME)
+DOCKER_USER := wang
+IMAGE_NAME  := $(DOCKER_USER)/$(APP_NAME)
 IMAGE_TAG   := latest
 COVERAGE    := coverage.out
 
